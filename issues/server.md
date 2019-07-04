@@ -18,7 +18,7 @@
         },
   ```
 
-## schema/task/Mutation.ts deleteTask
+## schema/task/Mutation.ts updateTask & deleteTask
 ### 에러
 - playground에서 `deleteTask`를 하면 에러가 나옴.
   - `mutation`
@@ -45,6 +45,7 @@
     ```
 ### 수정
 - taskIndex의 index가 -1 이상이면 원하는 값을 찾은 것이므로 if문의 조건을 `if (taskIndex > -1)` 으로 변경한다.
+- `deleteTask`뿐만 아니라 `updateTask`도 동일한 로직이 있으므로 둘 다 고치도록 한다.
   ```ts
   const taskIndex = TASKS.findIndex((task) => task.id === args.id)
   - if (taskIndex) {
