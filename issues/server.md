@@ -51,3 +51,13 @@
   - if (taskIndex) {
   + if (taskIndex > -1) {
   ```
+
+## aurora serverless yml 배포 시 에러
+- CloudFormation Stack을 만들 때 사용했는데, 아래 리소스가 만들어지지 않으면서 `Rollback`됨.
+  ```
+  2019-07-07 23:14:57 UTC+0900	PublicSubnetTwo	CREATE_FAILED	Template error: Fn::Select cannot select nonexistent value at index 2
+  ```
+- 두 개의 파일을 업로드 해서 시도해 보았는데 모두 같은 포인트에서 에러.
+  - `templates/prisma.aurora.serverless.yml`
+  - `templates/prisma.mysql.yml`
+- document에서 다운로드 링크 걸려있는 것을 다운로드 받아 시도 해도 에러. 다운로드 파일과 templates폴더의 파일 내용은 완전 동일했다.
