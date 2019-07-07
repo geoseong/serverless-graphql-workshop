@@ -53,6 +53,7 @@
   ```
 
 ## aurora serverless yml 배포 시 에러
+### 에러
 - CloudFormation Stack을 만들 때 사용했는데, 아래 리소스가 만들어지지 않으면서 `Rollback`됨.
   ```
   2019-07-07 23:14:57 UTC+0900	PublicSubnetTwo	CREATE_FAILED	Template error: Fn::Select cannot select nonexistent value at index 2
@@ -61,3 +62,93 @@
   - `templates/prisma.aurora.serverless.yml`
   - `templates/prisma.mysql.yml`
 - document에서 다운로드 링크 걸려있는 것을 다운로드 받아 시도 해도 에러. 다운로드 파일과 templates폴더의 파일 내용은 완전 동일했다.
+
+### 원인
+- `prisma.aurora.serverless.yml` 혹은 `prisma.mysql.yml`파일의 `PublicSubnetTwo`에서 `Fn::Select`와 `Fn::GetAZs` 을 활용하는 문법이 잘못된 듯.
+- 참고: https://docs.aws.amazon.com/ko_kr/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getavailabilityzones.html
+- [`CloudFormation > 템플릿 사용 > 템플릿 구조 > 파라미터` 문서의 아래 내용을 참고한 듯 하다](https://docs.aws.amazon.com/ko_kr/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html#parameters-section-structure-syntax.yaml)
+  ```yaml
+  DbSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub
+        - "${AWS::Region}${AZ}"
+        - AZ: !Select [0, !Ref VpcAzs]
+      VpcId: !Ref VPC
+      CidrBlock: !Select [0, !Ref DbSubnetIpBlocks]
+  DbSubnet2: 
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub
+        - "${AWS::Region}${AZ}"
+        - AZ: !Select [1, !Ref VpcAzs]
+      VpcId: !Ref VPC
+      CidrBlock: !Select [1, !Ref DbSubnetIpBlocks]
+  DbSubnet3: 
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub
+        - "${AWS::Region}${AZ}"
+        - AZ: !Select [2, !Ref VpcAzs]
+      VpcId: !Ref VPC
+      CidrBlock: !Select [2, !Ref DbSubnetIpBlocks]
+  ```
+- `Validate template`를 통해서 수시로 체크를 해야할 것 같다.
+  - **Console에서 확인하는 방법**
+    - Cloudformation Create Stack에서 최하단의 `View in Designer` 버튼을 누르면 도식화 된 차트를 확인 할 수 있다.
+    - 상단의 체크아이콘(`Validate template`)으로 yml파일의 문법체크를 할 수 있다.
+  - **CLI로 확인하는 방법**
+    - https://docs.aws.amazon.com/cli/latest/reference/cloudformation/validate-template.html
+    ```
+    $ aws cloudformation validate-template --template-body file://prisma.aurora.serverless.yml
+    ```
+
+### 시도 1
+- 실패. 에러 메시지 동일.
+- Cloudformation Validation을 통과 했는데도 이런다.
+- 변경 전
+  ```yaml
+    AvailabilityZone:
+      Fn::Select:
+      - 2
+      - Fn::GetAZs: {Ref: 'AWS::Region'}
+  ```
+- 변경 후
+  ```yaml
+    AvailabilityZone: !Select 
+      - 2
+      - Fn::GetAZs: !Ref 'AWS::Region'
+  ```
+
+### 시도 2
+- AWS Documentation에서 비슷한 예제를 보아서 참고해보려 함
+  - https://s3-ap-northeast-2.amazonaws.com/cloudformation-templates-ap-northeast-2/VPC_AutoScaling_With_Public_IPs.template
+- 실패
+
+### 시도 3
+- `Template error: Fn::Select cannot select nonexistent value` 로 구글링
+- 동일증상 겪는 사람의 질문 -> https://stackoverflow.com/a/42796915/8026431
+  ```yaml
+    subnet2:
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone:
+          Fn::Select:
+          - 1
+          - Fn::GetAZs: ''
+  ```
+- 실패
+
+### 시도 4
+- `PublicSubnetTwo`의 Fn::Select 값을 2 -> 1 로 바꿔보기
+  ```yaml
+  PublicSubnetTwo:
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone:
+          Fn::Select:
+            - 1 # <-- 2에서 1로 변경
+            - Fn::GetAZs: ''
+  ```
+- 성공.
+- 값을 0, 1, 2 이런식으로 가야 하는건가...?
