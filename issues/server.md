@@ -63,36 +63,11 @@
   - `templates/prisma.mysql.yml`
 - document에서 다운로드 링크 걸려있는 것을 다운로드 받아 시도 해도 에러. 다운로드 파일과 templates폴더의 파일 내용은 완전 동일했다.
 
-### 원인
-- `prisma.aurora.serverless.yml` 혹은 `prisma.mysql.yml`파일의 `PublicSubnetTwo`에서 `Fn::Select`와 `Fn::GetAZs` 을 활용하는 문법이 잘못된 듯.
-- 참고: https://docs.aws.amazon.com/ko_kr/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getavailabilityzones.html
-- [`CloudFormation > 템플릿 사용 > 템플릿 구조 > 파라미터` 문서의 아래 내용을 참고한 듯 하다](https://docs.aws.amazon.com/ko_kr/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html#parameters-section-structure-syntax.yaml)
-  ```yaml
-  DbSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      AvailabilityZone: !Sub
-        - "${AWS::Region}${AZ}"
-        - AZ: !Select [0, !Ref VpcAzs]
-      VpcId: !Ref VPC
-      CidrBlock: !Select [0, !Ref DbSubnetIpBlocks]
-  DbSubnet2: 
-    Type: AWS::EC2::Subnet
-    Properties:
-      AvailabilityZone: !Sub
-        - "${AWS::Region}${AZ}"
-        - AZ: !Select [1, !Ref VpcAzs]
-      VpcId: !Ref VPC
-      CidrBlock: !Select [1, !Ref DbSubnetIpBlocks]
-  DbSubnet3: 
-    Type: AWS::EC2::Subnet
-    Properties:
-      AvailabilityZone: !Sub
-        - "${AWS::Region}${AZ}"
-        - AZ: !Select [2, !Ref VpcAzs]
-      VpcId: !Ref VPC
-      CidrBlock: !Select [2, !Ref DbSubnetIpBlocks]
-  ```
+### 참고
+- [Fn::GetAZs](https://docs.aws.amazon.com/ko_kr/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getavailabilityzones.html)
+- [`CloudFormation > 템플릿 사용 > 템플릿 구조 > 파라미터` 문서의 아래 내용](https://docs.aws.amazon.com/ko_kr/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html#parameters-section-structure-syntax.yaml)
+
+### Validation
 - `Validate template`를 통해서 수시로 체크를 해야할 것 같다.
   - **Console에서 확인하는 방법**
     - Cloudformation Create Stack에서 최하단의 `View in Designer` 버튼을 누르면 도식화 된 차트를 확인 할 수 있다.
