@@ -5,7 +5,7 @@ provider:
   runtime: nodejs8.10
   stage: ${opt:stage, 'dev'}
   region: ap-northeast-2
-  profile: SERVERLESS_WORKSHOP
+  profile: 404hunter-geoseong
 
 package:
   individually: true
